@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XYZIT</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #111;
+            color: #eee;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        h1 {
+            margin-bottom: 10px;
+            color: #fff;
+            text-align: center;
+        }
+        
+        .description {
+            margin-bottom: 20px;
+            text-align: center;
+            line-height: 1.4;
+        }
+        
+        .canvas-container {
+            position: relative;
+            margin-bottom: 20px;
+            width: 100%;
+            max-width: 500px;
+            aspect-ratio: 1;
+        }
+        
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            border-radius: 4px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+        
+        .controls {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .control-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        label {
+            min-width: 80px;
+            color: #aaa;
+        }
+        
+        input, select, button {
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #333;
+            background-color: #222;
+            color: #fff;
+        }
+        
+        input[type="text"], input[type="number"] {
+            flex-grow: 1;
+        }
+        
+        .expression-wrapper {
+            display: flex;
+            align-items: center;
+            background-color: #222;
+            border-radius: 4px;
+            border: 1px solid #333;
+            padding: 0 5px;
+            flex-grow: 1;
+        }
+        
+        .expression-prefix, .expression-suffix {
+            color: #888;
+            font-family: monospace;
+            padding: 0 5px;
+            white-space: nowrap;
+        }
+        
+        #expression {
+            flex-grow: 1;
+            border: none;
+            background: transparent;
+            padding: 8px 0;
+        }
+        
+        #expression:focus {
+            outline: none;
+        }
+        
+        button {
+            cursor: pointer;
+            background-color: #333;
+            transition: background-color 0.2s;
+            padding: 8px 16px;
+        }
+        
+        button:hover {
+            background-color: #444;
+        }
+        
+        .save-btn {
+            background-color: #2a6;
+        }
+        
+        .save-btn:hover {
+            background-color: #3b7;
+        }
+        
+        .presets {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        
+        .preset-btn {
+            background-color: #445;
+            flex-grow: 1;
+            min-width: 80px;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .preset-btn:hover {
+            background-color: #556;
+        }
+        
+        .help {
+            background-color: #223;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            line-height: 1.4;
+        }
+        
+        .help h3 {
+            margin-top: 0;
+            color: #aaf;
+        }
+        
+        .help code {
+            background-color: #334;
+            padding: 2px 4px;
+            border-radius: 2px;
+            font-family: monospace;
+        }
+        
+        .help pre {
+            background-color: #223;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            overflow-x: auto;
+        }
+        
+        .help pre code {
+            background-color: transparent;
+            padding: 0;
+            display: block;
+            white-space: pre;
+            line-height: 1.5;
+        }
+        
+        .camera-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .camera-btn {
+            background-color: #234;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .camera-btn:hover {
+            background-color: #345;
+        }
+        
+        .current-expr {
+            margin-top: 15px;
+            color: #888;
+            font-size: 0.9em;
+            text-align: center;
+        }
+        
+        footer {
+            margin-top: 20px;
+            text-align: center;
+            color: #666;
+            font-size: 0.8em;
+            padding-bottom: 20px;
+        }
+        
+        @media (max-width: 600px) {
+            .control-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            label {
+                min-width: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>XYZIT</h1>
+        <div class="description">
+            3D 수학 표현식을 사용한 애니메이션 - 큐브 형태의 점 배열
+        </div>
+        
+        <div class="canvas-container">
+            <canvas id="canvas"></canvas>
+        </div>
+        
+        <div class="camera-controls">
+            <button class="camera-btn" id="resetCamera">카메라 리셋</button>
+            <button class="camera-btn" id="toggleRotation">자동 회전</button>
+        </div>
+        
+        <div class="controls">
+            <div class="control-row">
+                <label for="expression">표현식:</label>
+                <div class="expression-wrapper">
+                    <div class="expression-prefix">(x, y, z, i, t) => (</div>
+                    <input type="text" id="expression" value="Math.sin(t + x/5) * Math.cos(y/5) * Math.sin(z/5)" placeholder="여기에 수학 표현식 입력...">
+                    <div class="expression-suffix">)</div>
+                </div>
+            </div>
+            
+            <div class="control-row">
+                <label for="count">점 개수:</label>
+                <select id="count">
+                    <option value="5">5×5×5</option>
+                    <option value="8" selected>8×8×8</option>
+                    <option value="10">10×10×10</option>
+                    <option value="12">12×12×12</option>
+                </select>
+                
+                <label for="radius">반경:</label>
+                <input type="number" id="radius" value="0.4" step="0.1" min="0.1" max="1.0">
+                
+                <label for="speed">속도:</label>
+                <input type="number" id="speed" value="0.5" step="0.1" min="0.1" max="2.0">
+            </div>
+        </div>
+        
+        <div class="presets" id="presets">
+            <!-- 프리셋 버튼은 자바스크립트로 생성됩니다 -->
+        </div>
+        
+        <div class="help">
+            <h3>사용 방법</h3>
+            <p>3D 공간에서 점들을 애니메이션하기 위한 수학 표현식을 입력합니다. 마우스로 드래그하여 장면을 회전할 수 있습니다.</p>
+            
+            <p>표현식 형식:</p>
+            <pre><code>(x, y, z, i, t) => (
+  // 여기에 수학 표현식 입력
+  // 예: Math.sin(x*x + y*y + z*z + t)
+)</code></pre>
+            
+            <p>매개변수:</p>
+            <ul>
+                <li><code>x</code> - 점의 X 좌표 (-1 ~ 1 범위로 정규화)</li>
+                <li><code>y</code> - 점의 Y 좌표 (-1 ~ 1 범위로 정규화)</li>
+                <li><code>z</code> - 점의 Z 좌표 (-1 ~ 1 범위로 정규화)</li>
+                <li><code>i</code> - 점의 전체 인덱스</li>
+                <li><code>t</code> - 초 단위 시간 (애니메이션에 사용)</li>
+            </ul>
+            
+            <p>표현식은 -1.0에서 1.0 사이의 값을 반환해야 하며, 이 값에 따라 점의 크기와 색상이 결정됩니다.</p>
+        </div>
+        
+        <div class="current-expr" id="currentExpr">
+            현재 표현식: (x, y, z, i, t) => (Math.sin(t + x/5) * Math.cos(y/5) * Math.sin(z/5))
+        </div>
+    </div>
+    
+    <footer>
+        3D 수학 표현식 애니메이션
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 캔버스 설정
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+
+            // 입력 엘리먼트
+            const expressionInput = document.getElementById('expression');
+            const countInput = document.getElementById('count');
+            const radiusInput = document.getElementById('radius');
+            const speedInput = document.getElementById('speed');
+            const resetCameraBtn = document.getElementById('resetCamera');
+            const toggleRotationBtn = document.getElementById('toggleRotation');
+            const presetsContainer = document.getElementById('presets');
+            const currentExprEl = document.getElementById('currentExpr');
+            
+            // 상태 변수
+            let expression = expressionInput.value = "Math.sin(t + x/5) * Math.cos(y/5) * Math.sin(z/5)";
+            let count = parseInt(countInput.value);
+            let radius = parseFloat(radiusInput.value);
+            let speed = parseFloat(speedInput.value);
+            let autoRotate = false;
+            
+            // 3D 행렬 및 카메라 변수
+            let rotationX = 0.5;
+            let rotationY = 0.5;
+            let isDragging = false;
+            let lastMouseX = 0;
+            let lastMouseY = 0;
+            let startTime = Date.now();
+            let animationId;
+            
+            // 프리셋 정의
+            const presets = [
+                { name: '파동 1', expression: 'Math.sin(t + x/5) * Math.cos(y/5) * Math.sin(z/5)' },
+                { name: '파동 2', expression: 'Math.sin(Math.sqrt(x*x + y*y + z*z) - t*3)' },
+                { name: '파동 3', expression: 'Math.sin(x*x + y*y + z*z + t)' },
+                { name: '박스', expression: '(Math.abs(x) > 0.6 || Math.abs(y) > 0.6 || Math.abs(z) > 0.6) ? Math.sin(t) : 0' },
+                { name: '구체', expression: 'Math.abs(Math.sqrt(x*x + y*y + z*z) - 0.5) < 0.1 ? Math.sin(t*2) : 0' },
+                { name: '대각선', expression: 'Math.sin(x + y + z + t*2)' }
+            ];
+            
+            // 프리셋 버튼 생성
+            function createPresetButtons() {
+                presetsContainer.innerHTML = '';
+                
+                presets.forEach((preset, index) => {
+                    const button = document.createElement('button');
+                    button.className = 'preset-btn';
+                    button.textContent = preset.name;
+                    button.addEventListener('click', () => {
+                        expressionInput.value = preset.expression;
+                        expression = preset.expression;
+                        currentExprEl.textContent = '현재 표현식: ' + expression;
+                    });
+                    presetsContainer.appendChild(button);
+                });
+            }
+            
+            // 3D 점 생성
+            function createPoints(count) {
+                const points = [];
+                
+                for (let z = 0; z < count; z++) {
+                    for (let y = 0; y < count; y++) {
+                        for (let x = 0; x < count; x++) {
+                            // -1 ~ 1 범위로 정규화
+                            const px = (x / (count - 1)) * 2 - 1;
+                            const py = (y / (count - 1)) * 2 - 1;
+                            const pz = (z / (count - 1)) * 2 - 1;
+                            
+                            points.push({ x: px, y: py, z: pz });
+                        }
+                    }
+                }
+                
+                return points;
+            }
+            
+            // 3D 변환 함수
+            function rotateX(point, angle) {
+                const cos = Math.cos(angle);
+                const sin = Math.sin(angle);
+                const y = point.y * cos - point.z * sin;
+                const z = point.z * cos + point.y * sin;
+                return { x: point.x, y, z };
+            }
+            
+            function rotateY(point, angle) {
+                const cos = Math.cos(angle);
+                const sin = Math.sin(angle);
+                const x = point.x * cos + point.z * sin;
+                const z = point.z * cos - point.x * sin;
+                return { x, y: point.y, z };
+            }
+            
+            // 포인트 값 계산
+            function calculatePointValues(points, time) {
+                const totalPoints = points.length;
+                return points.map((point, i) => {
+                    try {
+                        // 화살표 함수 형식(arrow function)으로 표현식 평가
+                        const { x, y, z } = point;
+                        const t = time;
+                        
+                        // 표현식 평가 - 괄호 안의 내용만 추출하여 사용
+                        let value;
+                        
+                        // 간단한 표현식은 그대로 평가
+                        if (expression.indexOf('(x, y, z, i, t)') === -1 && 
+                            expression.indexOf('=>') === -1) {
+                            value = eval(expression);
+                        } else {
+                            // 화살표 함수 형식을 파싱하여 표현식만 추출
+                            let expressionBody = expression;
+                            
+                            // 화살표 함수 형식 제거
+                            const arrowIndex = expressionBody.indexOf('=>');
+                            if (arrowIndex !== -1) {
+                                expressionBody = expressionBody.substring(arrowIndex + 2).trim();
+                            }
+                            
+                            // 괄호 제거
+                            if (expressionBody.startsWith('(') && expressionBody.endsWith(')')) {
+                                expressionBody = expressionBody.substring(1, expressionBody.length - 1).trim();
+                            }
+                            
+                            // 표현식 평가
+                            value = eval(expressionBody);
+                        }
+                        
+                        // 값 제한
+                        value = Math.max(-1, Math.min(1, value));
+                        
+                        return value;
+                    } catch (error) {
+                        console.error("표현식 평가 오류:", error);
+                        return 0;
+                    }
+                });
+            }
+            
+            // 렌더링 함수
+            function render() {
+                // 캔버스 크기 조정
+                canvas.width = canvas.clientWidth;
+                canvas.height = canvas.clientHeight;
+                
+                // 배경 그리기
+                ctx.fillStyle = '#000';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // 시간 계산
+                const now = Date.now();
+                const time = (now - startTime) / 1000 * speed;
+                
+                // 자동 회전 업데이트
+                if (autoRotate) {
+                    rotationY += 0.01;
+                }
+                
+                // 3D 점 생성
+                const points = createPoints(count);
+                
+                // 포인트 값 계산
+                const values = calculatePointValues(points, time);
+                
+                // 점들을 z-순서로 정렬하기 위한 배열
+                const renderPoints = [];
+                
+                // 각 점을 회전시키고 2D로 투영
+                for (let i = 0; i < points.length; i++) {
+                    let point = points[i];
+                    
+                    // 회전 적용
+                    point = rotateX(point, rotationX);
+                    point = rotateY(point, rotationY);
+                    
+                    // 깊이 효과를 위한 z 조정 (원근감)
+                    const scale = 3 / (6 + point.z);
+                    
+                    // 2D 스크린 좌표 계산
+                    const x2d = point.x * scale * canvas.width / 2 + canvas.width / 2;
+                    const y2d = point.y * scale * canvas.height / 2 + canvas.height / 2;
+                    
+                    // 값에 따른 크기 계산
+                    const value = values[i];
+                    const size = Math.abs(value) * radius * scale * 50;
+                    
+                    // 렌더링할 점 정보 저장
+                    renderPoints.push({
+                        x: x2d,
+                        y: y2d,
+                        z: point.z,
+                        size,
+                        value
+                    });
+                }
+                
+                // Z-순서로 정렬 (뒤에서 앞으로)
+                renderPoints.sort((a, b) => a.z - b.z);
+                
+                // 모든 점 그리기
+                for (const point of renderPoints) {
+                    // 점의 값에 따라 색상 결정
+                    let color;
+                    if (point.value < 0) {
+                        // 음수는 빨간색
+                        const intensity = Math.min(1, 0.3 + Math.abs(point.value) * 0.7);
+                        color = `rgba(${Math.floor(255 * intensity)}, 0, 0, 0.8)`;
+                    } else {
+                        // 양수는 흰색
+                        const intensity = Math.min(1, 0.3 + point.value * 0.7);
+                        color = `rgba(${Math.floor(255 * intensity)}, ${Math.floor(255 * intensity)}, ${Math.floor(255 * intensity)}, 0.8)`;
+                    }
+                    
+                    // 점 그리기
+                    ctx.beginPath();
+                    ctx.arc(point.x, point.y, point.size, 0, Math.PI * 2);
+                    ctx.fillStyle = color;
+                    ctx.fill();
+                }
+                
+                // 애니메이션 계속
+                animationId = requestAnimationFrame(render);
+            }
+            
+            // 마우스 이벤트 처리
+            canvas.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                lastMouseX = e.clientX;
+                lastMouseY = e.clientY;
+            });
+            
+            document.addEventListener('mousemove', (e) => {
+                if (isDragging) {
+                    const deltaX = e.clientX - lastMouseX;
+                    const deltaY = e.clientY - lastMouseY;
+                    
+                    rotationY += deltaX * 0.01;
+                    rotationX += deltaY * 0.01;
+                    
+                    // 회전 제한
+                    rotationX = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, rotationX));
+                    
+                    lastMouseX = e.clientX;
+                    lastMouseY = e.clientY;
+                }
+            });
+            
+            document.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+            
+            // 터치 이벤트 처리
+            canvas.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 1) {
+                    isDragging = true;
+                    lastMouseX = e.touches[0].clientX;
+                    lastMouseY = e.touches[0].clientY;
+                }
+                e.preventDefault();
+            });
+            
+            document.addEventListener('touchmove', (e) => {
+                if (isDragging && e.touches.length === 1) {
+                    const deltaX = e.touches[0].clientX - lastMouseX;
+                    const deltaY = e.touches[0].clientY - lastMouseY;
+                    
+                    rotationY += deltaX * 0.01;
+                    rotationX += deltaY * 0.01;
+                    
+                    // 회전 제한
+                    rotationX = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, rotationX));
+                    
+                    lastMouseX = e.touches[0].clientX;
+                    lastMouseY = e.touches[0].clientY;
+                }
+                e.preventDefault();
+            });
+            
+            document.addEventListener('touchend', () => {
+                isDragging = false;
+            });
+            
+            // 입력 이벤트 처리
+            expressionInput.addEventListener('change', () => {
+                expression = expressionInput.value;
+                currentExprEl.textContent = '현재 표현식: ' + expression;
+            });
+            
+            countInput.addEventListener('change', () => {
+                count = parseInt(countInput.value);
+            });
+            
+            radiusInput.addEventListener('change', () => {
+                radius = parseFloat(radiusInput.value);
+            });
+            
+            speedInput.addEventListener('change', () => {
+                speed = parseFloat(speedInput.value);
+            });
+            
+            resetCameraBtn.addEventListener('click', () => {
+                rotationX = 0.5;
+                rotationY = 0.5;
+            });
+            
+            toggleRotationBtn.addEventListener('click', () => {
+                autoRotate = !autoRotate;
+                toggleRotationBtn.textContent = autoRotate ? '회전 중지' : '자동 회전';
+            });
+            
+            // 초기화 및 렌더링 시작
+            createPresetButtons();
+            render();
+        });
+    </script>
+</body>
+</html>
